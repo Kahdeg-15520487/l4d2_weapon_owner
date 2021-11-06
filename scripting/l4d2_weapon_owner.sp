@@ -73,10 +73,10 @@ public void OnPluginStart()
 	
 	g_hWeaponLockToggleCookie = RegClientCookie("weaponowner_toggle_cookie", "Weapon owner Toggle", CookieAccess_Protected);
 	
-	RegConsoleCmd("sm_toggle_lock", Command_ToggleLock, "Toggle on using weapon owner or not.");
-	RegConsoleCmd("sm_unlock", Command_Unlock, "Unlock currently claimed weapon.");
-	RegConsoleCmd("sm_unlock_primary", Command_UnlockPrimary, "Unlock currently claimed primary weapon.");
-	RegConsoleCmd("sm_unlock_secondary", Command_UnlockSecondary, "Unlock currently claimed secondary weapon.");
+	RegConsoleCmd("sm_wp_toggle_lock", Command_ToggleLock, "Toggle on using weapon owner or not.");
+	RegConsoleCmd("sm_wp_unlock", Command_Unlock, "Unlock currently claimed weapon.");
+	RegConsoleCmd("sm_wp_unlock_primary", Command_UnlockPrimary, "Unlock currently claimed primary weapon.");
+	RegConsoleCmd("sm_wp_unlock_secondary", Command_UnlockSecondary, "Unlock currently claimed secondary weapon.");
 	
 	AutoExecConfig(true, "l4d2_weaponowner");
 	
@@ -112,64 +112,69 @@ public Action Command_ToggleLock(int clientId, int args) {
 		Claim(clientId, -1, true);
 		Claim(clientId, -1, false);
 		PrintHintText(clientId, "Weapon lock off.");
+		ReplyToCommand(clientId, "Weapon lock off");
 	} else {
 		//toggle on
 		IntToString(1, sCookieValue, sizeof(sCookieValue));
 		SetClientCookie(clientId, g_hWeaponLockToggleCookie, sCookieValue);
 		PrintHintText(clientId, "Weapon lock on.");
+		ReplyToCommand(clientId, "Weapon lock on");
 	}
 	
 	return Plugin_Handled;
 }
 
-public Action Command_Unlock(int client, int args) {
+public Action Command_Unlock(int clientId, int args) {
 	if (IsPluginDisabled()) {
-		ReplyToCommand(client, "Cannot execute command. Weapon owner is currently disabled.");
+		ReplyToCommand(clientId, "Cannot execute command. Weapon owner is currently disabled.");
 		return Plugin_Handled;
 	}
 	
-	if (!IS_VALID_HUMAN(client)) {
-		ReplyToCommand(client, "Client '%d' is not valid.", client);
+	if (!IS_VALID_HUMAN(clientId)) {
+		ReplyToCommand(clientId, "Client '%d' is not valid.", clientId);
 		return Plugin_Handled;
 	}
 	
-	Claim(client, -1, true);
-	Claim(client, -1, false);
-	PrintHintText(client, "Unlocked all.");
+	Claim(clientId, -1, true);
+	Claim(clientId, -1, false);
+	PrintHintText(clientId, "Unlocked all.");
+	ReplyToCommand(clientId, "Unlocked all.");
 	
 	return Plugin_Handled;
 }
 
-public Action Command_UnlockPrimary(int client, int args) {
+public Action Command_UnlockPrimary(int clientId, int args) {
 	if (IsPluginDisabled()) {
-		PrintToChat(client, "Cannot execute command. Weapon owner is currently disabled.");
+		ReplyToCommand(clientId, "Cannot execute command. Weapon owner is currently disabled.");
 		return Plugin_Handled;
 	}
 	
-	if (!IS_VALID_HUMAN(client)) {
-		ReplyToCommand(client, "Client '%d' is not valid.", client);
+	if (!IS_VALID_HUMAN(clientId)) {
+		ReplyToCommand(clientId, "Client '%d' is not valid.", clientId);
 		return Plugin_Handled;
 	}
 	
-	Claim(client, -1, true);
-	PrintHintText(client, "Unlocked primary.");
+	Claim(clientId, -1, true);
+	PrintHintText(clientId, "Unlocked primary.");
+	ReplyToCommand(clientId, "Unlocked primary.");
 	
 	return Plugin_Handled;
 }
 
-public Action Command_UnlockSecondary(int client, int args) {
+public Action Command_UnlockSecondary(int clientId, int args) {
 	if (IsPluginDisabled()) {
-		ReplyToCommand(client, "Cannot execute command. Weapon owner is currently disabled.");
+		ReplyToCommand(clientId, "Cannot execute command. Weapon owner is currently disabled.");
 		return Plugin_Handled;
 	}
 	
-	if (!IS_VALID_HUMAN(client)) {
-		ReplyToCommand(client, "Client '%d' is not valid.", client);
+	if (!IS_VALID_HUMAN(clientId)) {
+		ReplyToCommand(clientId, "Client '%d' is not valid.", clientId);
 		return Plugin_Handled;
 	}
 	
-	Claim(client, -1, false);
-	PrintHintText(client, "Unlocked secondary.");
+	Claim(clientId, -1, false);
+	PrintHintText(clientId, "Unlocked secondary.");
+	ReplyToCommand(clientId, "Unlocked secondary.");
 	
 	return Plugin_Handled;
 }
