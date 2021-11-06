@@ -111,14 +111,14 @@ public Action Command_ToggleLock(int clientId, int args) {
 		SetClientCookie(clientId, g_hWeaponLockToggleCookie, sCookieValue);
 		Claim(clientId, -1, true);
 		Claim(clientId, -1, false);
-		PrintHintText(clientId, "Weapon lock off.");
-		ReplyToCommand(clientId, "Weapon lock off");
+		//PrintHintText(clientId, "Weapon lock off.");
+		PrintToChat(clientId, "Weapon lock off");
 	} else {
 		//toggle on
 		IntToString(1, sCookieValue, sizeof(sCookieValue));
 		SetClientCookie(clientId, g_hWeaponLockToggleCookie, sCookieValue);
-		PrintHintText(clientId, "Weapon lock on.");
-		ReplyToCommand(clientId, "Weapon lock on");
+		//PrintHintText(clientId, "Weapon lock on.");
+		PrintToChat(clientId, "Weapon lock on");
 	}
 	
 	return Plugin_Handled;
@@ -137,8 +137,8 @@ public Action Command_Unlock(int clientId, int args) {
 	
 	Claim(clientId, -1, true);
 	Claim(clientId, -1, false);
-	PrintHintText(clientId, "Unlocked all.");
-	ReplyToCommand(clientId, "Unlocked all.");
+	//PrintHintText(clientId, "Unlocked all.");
+	PrintToChat(clientId, "Unlocked all.");
 	
 	return Plugin_Handled;
 }
@@ -155,8 +155,8 @@ public Action Command_UnlockPrimary(int clientId, int args) {
 	}
 	
 	Claim(clientId, -1, true);
-	PrintHintText(clientId, "Unlocked primary.");
-	ReplyToCommand(clientId, "Unlocked primary.");
+	//PrintHintText(clientId, "Unlocked primary.");
+	PrintToChat(clientId, "Unlocked primary.");
 	
 	return Plugin_Handled;
 }
@@ -173,8 +173,8 @@ public Action Command_UnlockSecondary(int clientId, int args) {
 	}
 	
 	Claim(clientId, -1, false);
-	PrintHintText(clientId, "Unlocked secondary.");
-	ReplyToCommand(clientId, "Unlocked secondary.");
+	//PrintHintText(clientId, "Unlocked secondary.");
+	PrintToChat(clientId, "Unlocked secondary.");
 	
 	return Plugin_Handled;
 }
