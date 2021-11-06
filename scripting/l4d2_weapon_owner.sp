@@ -8,7 +8,7 @@
 
 #define PLUGIN_VERSION "1.00"
 
-#define DEBUG
+//#define DEBUG
 
 #define TEAM_SPECTATOR          1
 #define TEAM_SURVIVOR           2
