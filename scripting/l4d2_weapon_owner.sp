@@ -65,7 +65,7 @@ public void OnPluginStart()
 	 * "No logic using this flag ever existed in a released game. It only ever appeared in the first hl2sdk."
 	 */
 	CreateConVar("sm_wpowner_version", PLUGIN_VERSION, "Plugin Version.", FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
-	g_bCvarAllow = CreateConVar("weapon_owner_on", "1", "1=Plugin On. 0=Plugin Off", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_bCvarAllow = CreateConVar("weapon_owner_on", "1", "Enable plugin. 1=Plugin On. 0=Plugin Off", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_bCvarLockPrimary = CreateConVar("weapon_owner_lock_primary_on", "1", "1=lock Primary weapon On. 0=ignore Primary weapon", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_bCvarLockSecondary = CreateConVar("weapon_owner_lock_secondary_on", "1", "1=lock Secondary weapon On. 0=ignore Secondary weapon", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_bCvarWeaponOwnershipTimeout = CreateConVar("weapon_owner_lock_timeout", "0", "1=enable Weapon Ownership timeout. 0=disable Weapon Ownership timeout", FCVAR_NOTIFY, true, 0.0, true, 1.0);
