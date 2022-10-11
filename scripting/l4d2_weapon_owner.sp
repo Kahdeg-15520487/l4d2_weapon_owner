@@ -6,9 +6,10 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.00"
+#define PLUGIN_VERSION "1.1.0"
+//materials/vgui/white_additive.vmt
 
-//#define DEBUG
+#define DEBUG
 
 #define TEAM_SPECTATOR          1
 #define TEAM_SURVIVOR           2
@@ -28,17 +29,15 @@
 #define IS_HUMAN_SURVIVOR(%1)   (IS_VALID_HUMAN(%1) && IS_SURVIVOR(%1))
 #define IS_HUMAN_INFECTED(%1)   (IS_VALID_HUMAN(%1) && IS_INFECTED(%1))
 
-#define MAX_CLIENTS MaxClients
-
 #define CONFIG_FILE "weapon_owner.cfg"
 
 public Plugin myinfo = 
 {
 	name = "Weaponer owner", 
 	author = "kahdeg", 
-	description = "Locking weapon dropped", 
+	description = "Locking dropped weapon.", 
 	version = PLUGIN_VERSION, 
-	url = "https://forums.alliedmods.net/member.php?u=316295"
+	url = "https://forums.alliedmods.net/showthread.php?t=335071"
 };
 
 ConVar g_bCvarAllow, g_bCvarLockPrimary, g_bCvarLockSecondary, g_bCvarWeaponOwnershipTimeout, g_iCvarWeaponOwnershipTimeout;
@@ -73,10 +72,14 @@ public void OnPluginStart()
 	
 	g_hWeaponLockToggleCookie = RegClientCookie("weaponowner_toggle_cookie", "Weapon owner Toggle", CookieAccess_Protected);
 	
-	RegConsoleCmd("sm_wp_toggle_lock", Command_ToggleLock, "Toggle on using weapon owner or not.");
-	RegConsoleCmd("sm_wp_unlock", Command_Unlock, "Unlock currently claimed weapon.");
-	RegConsoleCmd("sm_wp_unlock_primary", Command_UnlockPrimary, "Unlock currently claimed primary weapon.");
-	RegConsoleCmd("sm_wp_unlock_secondary", Command_UnlockSecondary, "Unlock currently claimed secondary weapon.");
+	RegConsoleCmd("sm_weapon_lock_toggle", Command_ToggleLock, "Toggle on using weapon owner or not.");	
+	RegConsoleCmd("sm_wpl", Command_ToggleLock, "Toggle on using weapon owner or not.");
+	RegConsoleCmd("sm_weapon_unlock", Command_Unlock, "Unlock currently claimed weapon.");
+	RegConsoleCmd("sm_wpu", Command_Unlock, "Unlock currently claimed weapon.");
+	RegConsoleCmd("sm_weapon_unlock_primary", Command_UnlockPrimary, "Unlock currently claimed primary weapon.");
+	RegConsoleCmd("sm_wpu1", Command_UnlockPrimary, "Unlock currently claimed primary weapon.");
+	RegConsoleCmd("sm_weapon_unlock_secondary", Command_UnlockSecondary, "Unlock currently claimed secondary weapon.");
+	RegConsoleCmd("sm_wpu2", Command_UnlockSecondary, "Unlock currently claimed secondary weapon.");
 	
 	AutoExecConfig(true, "l4d2_weaponowner");
 	
@@ -182,6 +185,7 @@ public Action Command_UnlockSecondary(int clientId, int args) {
 public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 }
 
 public void OnMapStart()
@@ -264,6 +268,31 @@ public Action OnWeaponCanUse(int clientId, int weaponEntId)
 	return Plugin_Continue;
 }
 
+public Action OnWeaponDrop(int clientId, int weaponEntId){
+	if (IsPluginDisabled()) {
+		return Plugin_Continue;
+	}
+	
+	if (IS_VALID_CLIENT(clientId)) {
+		
+		//survivor pickup weapon
+		if (IS_VALID_HUMAN(clientId) && IS_VALID_SURVIVOR(clientId)) {
+			
+			char weaponName[64];
+			GetEntityClassname(weaponEntId, weaponName, sizeof(weaponName));
+			if (!IsWeapon(weaponName)) {
+				return Plugin_Continue;
+			}
+			
+			Claim(clientId, weaponEntId, IsPrimaryWeapon(weaponName));
+			char ownerClientName[255];
+			GetClientName(clientId, ownerClientName, sizeof(ownerClientName));
+			DebugPrint("dropped(sdk): %s | %d | c | o | %s", weaponName, weaponEntId, ownerClientName);
+		}
+	}
+	return Plugin_Continue;
+}
+
 /**
 * Callback for weapon_drop event.
 */
@@ -306,7 +335,7 @@ public Action Event_WeaponDrop(Event event, const char[] name, bool dontBroadcas
 * Check if a client own a weapon
 */
 public bool IsOwner(int clientId, int weaponEntId) {
-	if (clientId < MAX_CLIENTS) {
+	if (clientId < MaxClients) {
 		int claimId = g_WeaponOwnerRef.FindValue(clientId, 0);
 		if (claimId == -1) {
 			return false;
@@ -346,7 +375,7 @@ public int GetOwner(int weaponEntId) {
 */
 public int Claim(int clientId, int weaponEntId, bool isPrimary) {
 	int claim[5];
-	if (clientId < MAX_CLIENTS) {
+	if (clientId < MaxClients) {
 		
 		if (isPrimary && !CanLockPrimary()) {
 			DebugPrint("primary lock disabled");
