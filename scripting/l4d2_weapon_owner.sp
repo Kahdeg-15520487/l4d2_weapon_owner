@@ -40,7 +40,7 @@ public Plugin myinfo =
 	url = "https://forums.alliedmods.net/showthread.php?t=335071"
 };
 
-ConVar g_bCvarAllow, g_bCvarLockPrimary, g_bCvarLockSecondary, g_bCvarWeaponOwnershipTimeout, g_iCvarWeaponOwnershipTimeout;
+ConVar g_bCvarAllow, g_bCvarWeaponOwnershipTimeout, g_iCvarWeaponOwnershipTimeout;
 Handle g_hWeaponLockToggleCookie;
 
 char g_ConfigPath[PLATFORM_MAX_PATH];
@@ -54,7 +54,7 @@ public void OnPluginStart()
 		return;
 	}
 	
-	g_WeaponOwnerRef = new ArrayList(5);
+	g_WeaponOwnerRef = new ArrayList(3);
 	
 	BuildPath(Path_SM, g_ConfigPath, sizeof(g_ConfigPath), "configs/%s", CONFIG_FILE);
 	
@@ -65,8 +65,6 @@ public void OnPluginStart()
 	 */
 	CreateConVar("sm_wpowner_version", PLUGIN_VERSION, "Plugin Version.", FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	g_bCvarAllow = CreateConVar("weapon_owner_on", "1", "Enable plugin. 1=Plugin On. 0=Plugin Off", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	g_bCvarLockPrimary = CreateConVar("weapon_owner_lock_primary_on", "1", "1=lock Primary weapon On. 0=ignore Primary weapon", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	g_bCvarLockSecondary = CreateConVar("weapon_owner_lock_secondary_on", "1", "1=lock Secondary weapon On. 0=ignore Secondary weapon", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_bCvarWeaponOwnershipTimeout = CreateConVar("weapon_owner_lock_timeout", "0", "1=enable Weapon Ownership timeout. 0=disable Weapon Ownership timeout", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_iCvarWeaponOwnershipTimeout = CreateConVar("weapon_owner_lock_timeout_duration", "30", "Duration for weapon claim.", FCVAR_NOTIFY, true, 5.0, true, 9999.0);
 	
@@ -76,10 +74,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_wpl", Command_ToggleLock, "Toggle on using weapon owner or not.");
 	RegConsoleCmd("sm_weapon_unlock", Command_Unlock, "Unlock currently claimed weapon.");
 	RegConsoleCmd("sm_wpu", Command_Unlock, "Unlock currently claimed weapon.");
-	RegConsoleCmd("sm_weapon_unlock_primary", Command_UnlockPrimary, "Unlock currently claimed primary weapon.");
-	RegConsoleCmd("sm_wpu1", Command_UnlockPrimary, "Unlock currently claimed primary weapon.");
-	RegConsoleCmd("sm_weapon_unlock_secondary", Command_UnlockSecondary, "Unlock currently claimed secondary weapon.");
-	RegConsoleCmd("sm_wpu2", Command_UnlockSecondary, "Unlock currently claimed secondary weapon.");
 	
 	AutoExecConfig(true, "l4d2_weaponowner");
 	
@@ -112,8 +106,7 @@ public Action Command_ToggleLock(int clientId, int args) {
 		//toggle off
 		IntToString(0, sCookieValue, sizeof(sCookieValue));
 		SetClientCookie(clientId, g_hWeaponLockToggleCookie, sCookieValue);
-		Claim(clientId, -1, true);
-		Claim(clientId, -1, false);
+		Claim(clientId, -1);
 		//PrintHintText(clientId, "Weapon lock off.");
 		PrintToChat(clientId, "Weapon Lock Off");
 	} else {
@@ -138,46 +131,9 @@ public Action Command_Unlock(int clientId, int args) {
 		return Plugin_Handled;
 	}
 	
-	Claim(clientId, -1, true);
-	Claim(clientId, -1, false);
+	Claim(clientId, -1);
 	//PrintHintText(clientId, "Unlocked all.");
-	PrintToChat(clientId, "Unlocked All.");
-	
-	return Plugin_Handled;
-}
-
-public Action Command_UnlockPrimary(int clientId, int args) {
-	if (IsPluginDisabled()) {
-		ReplyToCommand(clientId, "Cannot execute command. Weapon owner is currently disabled.");
-		return Plugin_Handled;
-	}
-	
-	if (!IS_VALID_HUMAN(clientId)) {
-		ReplyToCommand(clientId, "Client '%d' is not valid.", clientId);
-		return Plugin_Handled;
-	}
-	
-	Claim(clientId, -1, true);
-	//PrintHintText(clientId, "Unlocked primary.");
-	PrintToChat(clientId, "Unlocked primary.");
-	
-	return Plugin_Handled;
-}
-
-public Action Command_UnlockSecondary(int clientId, int args) {
-	if (IsPluginDisabled()) {
-		ReplyToCommand(clientId, "Cannot execute command. Weapon owner is currently disabled.");
-		return Plugin_Handled;
-	}
-	
-	if (!IS_VALID_HUMAN(clientId)) {
-		ReplyToCommand(clientId, "Client '%d' is not valid.", clientId);
-		return Plugin_Handled;
-	}
-	
-	Claim(clientId, -1, false);
-	//PrintHintText(clientId, "Unlocked secondary.");
-	PrintToChat(clientId, "Unlocked secondary.");
+	PrintToChat(clientId, "Unlocked weapon.");
 	
 	return Plugin_Handled;
 }
@@ -210,19 +166,12 @@ public Action Timer_CheckOwnerTimeout(Handle timer) {
 	int currentTimestamp = GetTime();
 	for (int i = 0; i < n; i++) {
 		int clientId = g_WeaponOwnerRef.Get(i, 0);
-		int primaryWeaponEntId = g_WeaponOwnerRef.Get(i, 1);
-		int primaryWeaponTimestamp = g_WeaponOwnerRef.Get(i, 2);
-		int secondaryWeaponEntId = g_WeaponOwnerRef.Get(i, 3);
-		int secondaryWeaponTimestamp = g_WeaponOwnerRef.Get(i, 4);
+		int weaponEntId = g_WeaponOwnerRef.Get(i, 1);
+		int weaponTimestamp = g_WeaponOwnerRef.Get(i, 2);
 		
-		if (primaryWeaponEntId != -1 && (currentTimestamp - primaryWeaponTimestamp > GetWeaponOwnershipTimeout())) {
-			PrintToChat(clientId, "primary weapon unclaimed");
+		if (weaponEntId != -1 && (currentTimestamp - weaponTimestamp > GetWeaponOwnershipTimeout())) {
+			PrintToChat(clientId, "Weapon unlocked");
 			g_WeaponOwnerRef.Set(i, -1, 1);
-		}
-		
-		if (secondaryWeaponEntId != -1 && (currentTimestamp - secondaryWeaponTimestamp > GetWeaponOwnershipTimeout())) {
-			PrintToChat(clientId, "secondary weapon unclaimed");
-			g_WeaponOwnerRef.Set(i, -1, 3);
 		}
 	}
 	return Plugin_Continue;
@@ -260,7 +209,8 @@ public Action OnWeaponCanUse(int clientId, int weaponEntId)
 			
 			if (isClaim && !isOwner)
 			{
-				PrintHintText(clientId, "This weapon is claimed by %s!", ownerClientName);
+				//PrintHintText(clientId, "This weapon is claimed by %s!", ownerClientName);
+				PrintToChat(clientId, "This weapon is claimed by %s!", ownerClientName);
 				return Plugin_Handled;
 			}
 		}
@@ -284,7 +234,7 @@ public Action OnWeaponDrop(int clientId, int weaponEntId){
 				return Plugin_Continue;
 			}
 			
-			Claim(clientId, weaponEntId, IsPrimaryWeapon(weaponName));
+			Claim(clientId, weaponEntId);
 			char ownerClientName[255];
 			GetClientName(clientId, ownerClientName, sizeof(ownerClientName));
 			DebugPrint("dropped(sdk): %s | %d | c | o | %s", weaponName, weaponEntId, ownerClientName);
@@ -322,7 +272,7 @@ public Action Event_WeaponDrop(Event event, const char[] name, bool dontBroadcas
 			if (!IsWeapon(weaponName)) {
 				return Plugin_Continue;
 			}
-			Claim(clientId, weaponEntId, IsPrimaryWeapon(weaponName));
+			Claim(clientId, weaponEntId);
 			char ownerClientName[255];
 			GetClientName(clientId, ownerClientName, sizeof(ownerClientName));
 			DebugPrint("dropped: %s | %d | c | o | %s", weaponName, weaponEntId, ownerClientName);
@@ -340,7 +290,7 @@ public bool IsOwner(int clientId, int weaponEntId) {
 		if (claimId == -1) {
 			return false;
 		}
-		return (g_WeaponOwnerRef.Get(claimId, 1) == weaponEntId || g_WeaponOwnerRef.Get(claimId, 3) == weaponEntId);
+		return g_WeaponOwnerRef.Get(claimId, 1) == weaponEntId;
 	}
 	return false;
 }
@@ -350,9 +300,6 @@ public bool IsOwner(int clientId, int weaponEntId) {
 */
 public bool IsClaimed(int weaponEntId) {
 	int claimId = g_WeaponOwnerRef.FindValue(weaponEntId, 1);
-	if (claimId == -1) {
-		claimId = g_WeaponOwnerRef.FindValue(weaponEntId, 3);
-	}
 	return claimId != -1;
 }
 
@@ -361,9 +308,6 @@ public bool IsClaimed(int weaponEntId) {
 */
 public int GetOwner(int weaponEntId) {
 	int claimId = g_WeaponOwnerRef.FindValue(weaponEntId, 1);
-	if (claimId == -1) {
-		claimId = g_WeaponOwnerRef.FindValue(weaponEntId, 3);
-	}
 	if (claimId != -1) {
 		return g_WeaponOwnerRef.Get(claimId, 0);
 	}
@@ -373,102 +317,34 @@ public int GetOwner(int weaponEntId) {
 /**
 * Claim a weapon for a client
 */
-public int Claim(int clientId, int weaponEntId, bool isPrimary) {
+public int Claim(int clientId, int weaponEntId) {
 	int claim[5];
 	if (clientId < MaxClients) {
-		
-		if (isPrimary && !CanLockPrimary()) {
-			DebugPrint("primary lock disabled");
-			return -1;
-		}
-		
-		if (!isPrimary && !CanLockSecondary()) {
-			DebugPrint("secondary lock disabled");
-			return -1;
-		}
 		
 		int claimId = g_WeaponOwnerRef.FindValue(clientId, 0);
 		int currentTime = GetTime();
 		if (claimId == -1) {
 			claim[0] = clientId;
-			if (isPrimary) {
-				claim[1] = weaponEntId;
-				claim[2] = currentTime;
-				claim[3] = -1;
-				claim[4] = -1;
-			} else {
-				claim[1] = -1;
-				claim[2] = -1;
-				claim[3] = weaponEntId;
-				claim[4] = currentTime;
-			}
+			claim[1] = weaponEntId;
+			claim[2] = currentTime;
 			claimId = g_WeaponOwnerRef.PushArray(claim, 5);
 			DebugPrint("new claim");
 		} else {
-			int oldwp = g_WeaponOwnerRef.Get(claimId, isPrimary ? 1 : 3);
-			g_WeaponOwnerRef.Set(claimId, weaponEntId, isPrimary ? 1 : 3);
-			g_WeaponOwnerRef.Set(claimId, currentTime, isPrimary ? 2 : 4);
+			int oldwp = g_WeaponOwnerRef.Get(claimId, 1);
+			g_WeaponOwnerRef.Set(claimId, weaponEntId, 1);
+			g_WeaponOwnerRef.Set(claimId, currentTime, 2);
 			DebugPrint("overwrite claim %d -> %d", oldwp, weaponEntId);
 		}
 		return claimId;
 	}
 	return -1;
 }
-
-/**
-* Check if a weapon is in primary slot
-*/
-public bool IsPrimaryWeapon(const char[] weaponName) {
-	
-	//melee
-	if (StrEqual(weaponName, "weapon_chainsaw") || StrEqual(weaponName, "weapon_melee")) {
-		return false;
-	}
-	
-	//pistol
-	if (StrEqual(weaponName, "weapon_pistol_magnum") || StrEqual(weaponName, "weapon_pistol")) {
-		return false;
-	}
-	
-	return true;
-}
-
 /**
 * Check if an item is a weapon
 */
-public bool IsWeapon(const char[] weaponName) {
-	//special
-	if (StrEqual(weaponName, "weapon_grenade_launcher") || StrEqual(weaponName, "weapon_rifle_m60")) {
-		return true;
-	}
-	
+public bool IsWeapon(const char[] weaponName) {	
 	//melee
 	if (StrEqual(weaponName, "weapon_chainsaw") || StrEqual(weaponName, "weapon_melee")) {
-		return true;
-	}
-	
-	//deagle
-	if (StrEqual(weaponName, "weapon_pistol_magnum")) {
-		return true;
-	}
-	
-	//rifle
-	if (StrEqual(weaponName, "weapon_rifle") || StrEqual(weaponName, "weapon_rifle_ak47") || StrEqual(weaponName, "weapon_rifle_desert") || StrEqual(weaponName, "weapon_rifle_sg552")) {
-		return true;
-	}
-	
-	//shotgun
-	if (StrEqual(weaponName, "weapon_pumpshotgun") || StrEqual(weaponName, "weapon_shotgun_chrome") || StrEqual(weaponName, "weapon_autoshotgun") || StrEqual(weaponName, "weapon_shotgun_spas")) {
-		return true;
-	}
-	
-	//smg
-	if (StrEqual(weaponName, "weapon_smg") || StrEqual(weaponName, "weapon_smg_mp5") || StrEqual(weaponName, "weapon_smg_silenced")) {
-		return true;
-	}
-	
-	//sniper
-	if (StrEqual(weaponName, "weapon_sniper_awp") || StrEqual(weaponName, "weapon_sniper_military") || StrEqual(weaponName, "weapon_sniper_scout") || StrEqual(weaponName, "weapon_hunting_rifle")) {
 		return true;
 	}
 	return false;
@@ -495,14 +371,6 @@ public bool GetClientWeaponOwnerToggleState(int clientId) {
 	GetClientCookie(clientId, g_hWeaponLockToggleCookie, sCookieValue, sizeof(sCookieValue));
 	int cookieValue = StringToInt(sCookieValue);
 	return cookieValue == 1;
-}
-
-public bool CanLockPrimary() {
-	return g_bCvarLockPrimary.BoolValue;
-}
-
-public bool CanLockSecondary() {
-	return g_bCvarLockSecondary.BoolValue;
 }
 
 public bool IsPluginDisabled() {
