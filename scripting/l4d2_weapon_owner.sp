@@ -9,7 +9,7 @@
 #define PLUGIN_VERSION "1.1.0"
 //materials/vgui/white_additive.vmt
 
-#define DEBUG
+//#define DEBUG
 
 #define TEAM_SPECTATOR          1
 #define TEAM_SURVIVOR           2
