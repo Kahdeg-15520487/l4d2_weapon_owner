@@ -9,7 +9,11 @@ weapon_owner_lock_timeout_duration | Duration for weapon claim. | 30
 
 Command | Description
 ---|---
-sm_wp_toggle_lock | Toggle on using weapon owner or not.
-sm_wp_unlock | Unlock currently claimed weapon.
-sm_wp_unlock_primary | Unlock currently claimed primary weapon.
-sm_wp_unlock_secondary | Unlock currently claimed secondary weapon.
+sm_weapon_lock_toggle | Toggle on using weapon owner or not.
+sm_wpl | Toggle on using weapon owner or not.
+sm_weapon_unlock | Unlock currently claimed weapon.
+sm_wpu | Unlock currently claimed weapon.
+sm_weapon_unlock_primary | Unlock currently claimed primary weapon.
+sm_wpu1 | Unlock currently claimed primary weapon.
+sm_weapon_unlock_secondary | Unlock currently claimed secondary weapon.
+sm_wpu2 | Unlock currently claimed secondary weapon.
