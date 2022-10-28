@@ -77,20 +77,25 @@ public void OnPluginStart()
 	
 	AutoExecConfig(true, "l4d2_weaponowner");
 	
-	HookEvent("weapon_drop", Event_WeaponDrop, EventHookMode_Post);
-	
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i))
 		{
 			SDKHook(i, SDKHook_WeaponCanUse, OnWeaponCanUse);
+			SDKHook(i, SDKHook_WeaponDrop, OnWeaponDrop);
 		}
 	}
 	
 	CreateTimer(2.0, Timer_CheckOwnerTimeout, _, TIMER_REPEAT);
 }
 
-public Action Command_ToggleLock(int clientId, int args) {
+public void OnClientPutInServer(int client)
+{
+	SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
+	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
+}
+
+Action Command_ToggleLock(int clientId, int args) {
 	if (IsPluginDisabled()) {
 		ReplyToCommand(clientId, "Cannot execute command. Weapon owner is currently disabled.");
 		return Plugin_Handled;
@@ -120,7 +125,7 @@ public Action Command_ToggleLock(int clientId, int args) {
 	return Plugin_Handled;
 }
 
-public Action Command_Unlock(int clientId, int args) {
+Action Command_Unlock(int clientId, int args) {
 	if (IsPluginDisabled()) {
 		ReplyToCommand(clientId, "Cannot execute command. Weapon owner is currently disabled.");
 		return Plugin_Handled;
@@ -138,24 +143,10 @@ public Action Command_Unlock(int clientId, int args) {
 	return Plugin_Handled;
 }
 
-public void OnClientPutInServer(int client)
-{
-	SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
-	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
-}
-
-public void OnMapStart()
-{
-	/**
-	 * @note Precache your models, sounds, etc. here!
-	 * Not in OnConfigsExecuted! Doing so leads to issues.
-	 */
-}
-
 /**
 * Callback for timer to expire weapon ownership.
 */
-public Action Timer_CheckOwnerTimeout(Handle timer) {
+Action Timer_CheckOwnerTimeout(Handle timer) {
 	if (IsPluginDisabled()) {
 		return Plugin_Continue;
 	}
@@ -180,7 +171,7 @@ public Action Timer_CheckOwnerTimeout(Handle timer) {
 /**
 * Callback for WeaponCanUse hook.
 */
-public Action OnWeaponCanUse(int clientId, int weaponEntId)
+Action OnWeaponCanUse(int clientId, int weaponEntId)
 {
 	if (IsPluginDisabled()) {
 		return Plugin_Continue;
@@ -218,7 +209,7 @@ public Action OnWeaponCanUse(int clientId, int weaponEntId)
 	return Plugin_Continue;
 }
 
-public Action OnWeaponDrop(int clientId, int weaponEntId){
+Action OnWeaponDrop(int clientId, int weaponEntId){
 	if (IsPluginDisabled()) {
 		return Plugin_Continue;
 	}
@@ -227,6 +218,11 @@ public Action OnWeaponDrop(int clientId, int weaponEntId){
 		
 		//survivor pickup weapon
 		if (IS_VALID_HUMAN(clientId) && IS_VALID_SURVIVOR(clientId)) {
+			
+			//check for weapon owner toggle
+			if (!GetClientWeaponOwnerToggleState(clientId)) {
+				return Plugin_Continue;
+			}
 			
 			char weaponName[64];
 			GetEntityClassname(weaponEntId, weaponName, sizeof(weaponName));
@@ -244,47 +240,9 @@ public Action OnWeaponDrop(int clientId, int weaponEntId){
 }
 
 /**
-* Callback for weapon_drop event.
-*/
-public Action Event_WeaponDrop(Event event, const char[] name, bool dontBroadcast) {
-	
-	if (IsPluginDisabled()) {
-		return Plugin_Continue;
-	}
-	
-	int usid = event.GetInt("userid");
-	int clientId = GetClientOfUserId(usid);
-	int weaponEntId = event.GetInt("propid");
-	
-	if (IS_VALID_CLIENT(clientId)) {
-		
-		//check for weapon owner toggle
-		if (!GetClientWeaponOwnerToggleState(clientId)) {
-			return Plugin_Continue;
-		}
-		
-		//survivor drop weapon
-		if (IS_VALID_SURVIVOR(clientId)) {
-			char item[255];
-			event.GetString("item", item, 255);
-			char weaponName[255];
-			FormatEx(weaponName, 255, "weapon_%s", item);
-			if (!IsWeapon(weaponName)) {
-				return Plugin_Continue;
-			}
-			Claim(clientId, weaponEntId);
-			char ownerClientName[255];
-			GetClientName(clientId, ownerClientName, sizeof(ownerClientName));
-			DebugPrint("dropped: %s | %d | c | o | %s", weaponName, weaponEntId, ownerClientName);
-		}
-	}
-	return Plugin_Continue;
-}
-
-/**
 * Check if a client own a weapon
 */
-public bool IsOwner(int clientId, int weaponEntId) {
+bool IsOwner(int clientId, int weaponEntId) {
 	if (clientId < MaxClients) {
 		int claimId = g_WeaponOwnerRef.FindValue(clientId, 0);
 		if (claimId == -1) {
@@ -298,7 +256,7 @@ public bool IsOwner(int clientId, int weaponEntId) {
 /**
 * Check if a weapon is claimed
 */
-public bool IsClaimed(int weaponEntId) {
+bool IsClaimed(int weaponEntId) {
 	int claimId = g_WeaponOwnerRef.FindValue(weaponEntId, 1);
 	return claimId != -1;
 }
@@ -306,7 +264,7 @@ public bool IsClaimed(int weaponEntId) {
 /**
 * Get a weapon's owner's clientid
 */
-public int GetOwner(int weaponEntId) {
+int GetOwner(int weaponEntId) {
 	int claimId = g_WeaponOwnerRef.FindValue(weaponEntId, 1);
 	if (claimId != -1) {
 		return g_WeaponOwnerRef.Get(claimId, 0);
@@ -317,7 +275,7 @@ public int GetOwner(int weaponEntId) {
 /**
 * Claim a weapon for a client
 */
-public int Claim(int clientId, int weaponEntId) {
+int Claim(int clientId, int weaponEntId) {
 	int claim[5];
 	if (clientId < MaxClients) {
 		
@@ -342,7 +300,7 @@ public int Claim(int clientId, int weaponEntId) {
 /**
 * Check if an item is a weapon
 */
-public bool IsWeapon(const char[] weaponName) {	
+bool IsWeapon(const char[] weaponName) {	
 	//melee
 	if (StrEqual(weaponName, "weapon_chainsaw") || StrEqual(weaponName, "weapon_melee")) {
 		return true;
@@ -350,7 +308,7 @@ public bool IsWeapon(const char[] weaponName) {
 	return false;
 }
 
-public void DebugPrint(const char[] format, any...) {
+void DebugPrint(const char[] format, any...) {
 	#if defined DEBUG
 	char buffer[254];
 	
@@ -366,21 +324,21 @@ public void DebugPrint(const char[] format, any...) {
 	#endif
 }
 
-public bool GetClientWeaponOwnerToggleState(int clientId) {
+bool GetClientWeaponOwnerToggleState(int clientId) {
 	char sCookieValue[4];
 	GetClientCookie(clientId, g_hWeaponLockToggleCookie, sCookieValue, sizeof(sCookieValue));
 	int cookieValue = StringToInt(sCookieValue);
 	return cookieValue == 1;
 }
 
-public bool IsPluginDisabled() {
+bool IsPluginDisabled() {
 	return !g_bCvarAllow.BoolValue;
 }
 
-public int GetWeaponOwnershipTimeout() {
+int GetWeaponOwnershipTimeout() {
 	return g_iCvarWeaponOwnershipTimeout.IntValue;
 }
 
-public bool IsWeaponOwnershipTimeoutDisabled() {
+bool IsWeaponOwnershipTimeoutDisabled() {
 	return !g_bCvarWeaponOwnershipTimeout.BoolValue;
 }
